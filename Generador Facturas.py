@@ -114,7 +114,7 @@ try:
                     paragraph.text = re.sub(placeholder, new_value, paragraph.text)
 
         # Save modified document to a temporary file
-        modified_docx_path = "/mnt/data/Modified_Template.docx"
+        modified_docx_path = FILES_PATH + "words/modified.docx"
         doc.save(modified_docx_path)
         return modified_docx_path
 

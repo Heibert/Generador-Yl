@@ -1,10 +1,12 @@
 """This script generates a PDF file for each record in a excel"""
 
 try:
+    import locale
     import os
     import re
     import sys
     import traceback
+    from datetime import datetime
 
     import pandas as pd
     import pyfiglet
@@ -59,16 +61,6 @@ try:
         input("Presiona enter para salir.")
         sys.exit()
 
-    def get_numbers(string):
-        """Get the numbers from a string."""
-        number = re.sub(r"[^0-9,]", "", string)
-        if number == "":
-            print(f"No se encontraron números en '{string}'.")
-            return 0
-        else:
-            number = number.replace(",", ".")
-            return float(number)
-
     def get_data_from_excel(file):
         """Get the data from the excel file."""
         try:
@@ -118,32 +110,42 @@ try:
         doc.save(modified_docx_path)
         return modified_docx_path
 
+    disclaimer()
+
+    TODAY = datetime.now().strftime("%d/%m/%Y")
+    locale.setlocale(locale.LC_ALL, "es_CO.UTF-8")
     # Paths to the files
-    original_docx_path = FILES_PATH + "/Plantillas/Plantilla 10-30.docx"
-    output_pdf_path = FILES_PATH + "/pdf/Invoice.pdf"
-
-    # Dictionary with placeholders and their corresponding values
-    replacements = {
-        "XDATE_TODAYX": "2024-11-13",
-        "XCONSULTANT_NAMEX": "John Doe",
-        "XADDRESSX": "123 Main Street",
-        "XCITYX": "Bogotá",
-        "XBILLX": "456789",
-        "XEXPIRATION_DATEX": "2024-12-01",
-        "XVALUEX": "1,000,000 COP",
-    }
-
-    # Load, replace placeholders, and save as a new .docx file
-    modified_docx_path = load_and_replace_docx(original_docx_path, replacements)
-
-    # Convert the modified .docx to PDF
-    convert(modified_docx_path, output_pdf_path)
-
-    print("PDF created successfully at:", output_pdf_path)
-
+    print("Leyendo archivo de Excel...")
     data = get_data_from_excel(FILES_PATH + "BASE BOT CORRESPONDENCIA.xlsx")
-    print(data)
-    print(data['CEDULA'][0])
+    print("Creando PDFs...")
+    for i in range(len(data["CEDULA"])):
+        if str(data["EDAD DE LIQUIDACION"][i]).startswith("031"):
+            original_docx_path = FILES_PATH + "Plantillas/Plantilla 10-30.docx"
+        elif str(data["EDAD DE LIQUIDACION"][i]).startswith("061"):
+            original_docx_path = FILES_PATH + "Plantillas/Plantilla 60.docx"
+        output_pdf_path = FILES_PATH + f"/pdf/{data['CEDULA'][i]}.pdf"
+
+        # Dictionary with placeholders and their corresponding values
+        replacements = {
+            "XDATE_TODAYX": TODAY,
+            "XCONSULTANT_NAMEX": data["NOMBRE CONSULTORA"][i],
+            "XADDRESSX": data["DIRECCION"][i],
+            "XCITYX": data["CIUDAD"][i],
+            "XBILLX": str(data["FACTURA"][i]),
+            "XEXPIRATION_DATEX": data["VENCIMIENTO"][i].strftime("%d/%m/%Y"),
+            # format like money
+            "XVALUEX": locale.currency(
+                data["VALOR TOTAL AL DIA"][i], grouping=True
+            ).split(",")[0],
+        }
+
+        # Load, replace placeholders, and save as a new .docx file
+        modified_docx_path = load_and_replace_docx(original_docx_path, replacements)
+
+        # Convert the modified .docx to PDF
+        convert(modified_docx_path, output_pdf_path)
+
+        print("PDF created successfully at:", output_pdf_path)
     # input("Presiona enter para salir.")
 
 except Exception as e:

@@ -5,10 +5,8 @@ try:
     import os
     import re
     import sys
-    import tempfile
     import traceback
     from datetime import datetime
-    from io import BytesIO
 
     import pandas as pd
     import pyfiglet
@@ -46,13 +44,12 @@ try:
             "\nRecuerde que este archivo es privado y no debe ser compartido con personal no autorizado.\n"
         )
 
-        print("RECUERDE CERRAR MICROSOFT WORD ANTES DE EJECUTAR ESTE SCRIPT.\n")
-        input("Presiona enter para continuar.")
-
     # Check if the folders exists and create them if they don't
-    os.makedirs(FILES_PATH + "temp", exist_ok=True)
+    if not os.path.exists(FILES_PATH + "words"):
+        os.makedirs(FILES_PATH + "words")
 
-    os.makedirs(FILES_PATH + "pdf", exist_ok=True)
+    if not os.path.exists(FILES_PATH + "pdf"):
+        os.makedirs(FILES_PATH + "pdf")
 
     if not os.path.exists(FILES_PATH + "Plantillas"):
         print("No se encontró la carpeta 'Plantillas'.")
@@ -100,19 +97,6 @@ try:
             sys.exit()
 
     # Function to load and replace placeholders in the .docx
-    # def load_and_replace_docx(docx_path, replacements):
-    #     doc = Document(docx_path)
-    #     # Replace placeholders in the body of the document
-    #     for paragraph in doc.paragraphs:
-    #         for placeholder, new_value in replacements.items():
-    #             if placeholder in paragraph.text:
-    #                 # Replace placeholder text while keeping formatting
-    #                 paragraph.text = paragraph.text.replace(placeholder, new_value)
-
-    #     temp_docx_path = FILES_PATH + "words/modified.docx"
-    #     doc.save(temp_docx_path)
-    #     return temp_docx_path
-
     def load_and_replace_docx(docx_path, replacements):
         doc = Document(docx_path)
         for paragraph in doc.paragraphs:
@@ -145,38 +129,40 @@ try:
             sys.exit()
         return original_docx_path
 
-    if __name__ == "__main__":
-        disclaimer()
-        TODAY = datetime.now().strftime("%d/%m/%Y")
-        locale.setlocale(locale.LC_ALL, "es_CO.UTF-8")
-        # Paths to the files
-        print("Leyendo 'BASE BOT CORRESPONDENCIA.xlsx'...")
-        data = get_data_from_excel(FILES_PATH + "BASE BOT CORRESPONDENCIA.xlsx")
-        print("Creando PDFs...")
-        for i in range(len(data["CEDULA"])):
-            original_docx_path = select_template(str(data["EDAD DE LIQUIDACION"][i]))
-            output_pdf_path = FILES_PATH + f"/pdf/{data['CEDULA'][i]}.pdf"
-            # Dictionary with placeholders and their corresponding values
-            replacements = {
-                "XDATE_TODAYX": TODAY,
-                "XCONSULTANT_NAMEX": data["NOMBRE CONSULTORA"][i],
-                "XADDRESSX": data["DIRECCION"][i],
-                "XCITYX": data["CIUDAD"][i],
-                "XBILLX": str(data["FACTURA"][i]),
-                "XEXPIRATION_DATEX": data["VENCIMIENTO"][i].strftime("%d/%m/%Y"),
-                # format like money
-                "XVALUEX": locale.currency(
-                    data["VALOR TOTAL AL DIA"][i], grouping=True
-                ).split(",")[0],
-                "XDIASX": str(data["DIAS MORA AL DIA"][i]),
-            }
-            # Load, replace placeholders, and save as a new .docx file
-            modified_docx_path = load_and_replace_docx(original_docx_path, replacements)
-            print("Llegue")
-            # Convert the modified .docx to PDF
-            convert(modified_docx_path, output_pdf_path)
-            print("PDF created successfully at:", output_pdf_path)
-        input("Presiona enter para salir.")
+    disclaimer()
+
+    TODAY = datetime.now().strftime("%d/%m/%Y")
+    locale.setlocale(locale.LC_ALL, "es_CO.UTF-8")
+    # Paths to the files
+    print("Leyendo archivo de Excel...")
+    data = get_data_from_excel(FILES_PATH + "BASE BOT CORRESPONDENCIA.xlsx")
+    print("Creando PDFs...")
+    for i in range(len(data["CEDULA"])):
+        original_docx_path = select_template(str(data["EDAD DE LIQUIDACION"][i]))
+        output_pdf_path = FILES_PATH + f"/pdf/{data['CEDULA'][i]}.pdf"
+
+        # Dictionary with placeholders and their corresponding values
+        replacements = {
+            "XDATE_TODAYX": TODAY,
+            "XCONSULTANT_NAMEX": data["NOMBRE CONSULTORA"][i],
+            "XADDRESSX": data["DIRECCION"][i],
+            "XCITYX": data["CIUDAD"][i],
+            "XBILLX": str(data["FACTURA"][i]),
+            "XEXPIRATION_DATEX": data["VENCIMIENTO"][i].strftime("%d/%m/%Y"),
+            # format like money
+            "XVALUEX": locale.currency(
+                data["VALOR TOTAL AL DIA"][i], grouping=True
+            ).split(",")[0],
+        }
+
+        # Load, replace placeholders, and save as a new .docx file
+        modified_docx_path = load_and_replace_docx(original_docx_path, replacements)
+
+        # Convert the modified .docx to PDF
+        convert(modified_docx_path, output_pdf_path)
+
+        print("PDF created successfully at:", output_pdf_path)
+    # input("Presiona enter para salir.")
 
 except Exception as e:
     print(traceback.format_exc())

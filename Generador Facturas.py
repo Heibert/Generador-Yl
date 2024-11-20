@@ -5,15 +5,15 @@ try:
     import os
     import re
     import sys
-    import tempfile
     import traceback
     from datetime import datetime
-    from io import BytesIO
 
     import pandas as pd
     import pyfiglet
     from docx import Document
     from docx2pdf import convert
+    from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+    from docx.shared import Inches
 
     FILES_PATH = os.path.dirname(os.path.abspath(__file__)) + "\\"
 
@@ -59,10 +59,41 @@ try:
         input("Presiona enter para salir.")
         sys.exit()
 
+    if not os.path.exists(FILES_PATH + "images"):
+        print("No se encontró la carpeta 'images'.")
+        input("Presiona enter para salir.")
+        sys.exit()
+
+    if not os.path.exists(FILES_PATH + "images/logo.png"):
+        print("No se encontró el archivo 'logo.png'.")
+        input("Presiona enter para salir.")
+        sys.exit()
+
     if not os.path.exists(FILES_PATH + "BASE BOT CORRESPONDENCIA.xlsx"):
         print("No se encontró el archivo 'BASE BOT CORRESPONDENCIA.xlsx'.")
         input("Presiona enter para salir.")
         sys.exit()
+
+    def add_image_as_header(doc_path, img_path):
+        # Load the document
+        doc = Document(doc_path)
+
+        # Access the header of the first section
+        section = doc.sections[0]
+        header = section.header
+
+        # Add a paragraph to the right of the header at the right
+        paragraph = header.paragraphs[0]
+        paragraph.alignment = (
+            WD_PARAGRAPH_ALIGNMENT.RIGHT
+        )  # Align the paragraph to the right
+        run = paragraph.add_run()
+        run.add_picture(img_path, width=Inches(0.6))
+
+        # Save the modified document
+        temp_path = os.path.join(os.path.dirname(doc_path), "temp_with_header.docx")
+        doc.save(temp_path)
+        return temp_path
 
     def get_data_from_excel(file):
         """Get the data from the excel file."""
@@ -172,7 +203,10 @@ try:
             }
             # Load, replace placeholders, and save as a new .docx file
             modified_docx_path = load_and_replace_docx(original_docx_path, replacements)
-            print("Llegue")
+            # Add an image to the top right of the document
+            img_path = FILES_PATH + "images/logo.png"
+            modified_docx_path = add_image_as_header(modified_docx_path, img_path)
+
             # Convert the modified .docx to PDF
             convert(modified_docx_path, output_pdf_path)
             print("PDF created successfully at:", output_pdf_path)

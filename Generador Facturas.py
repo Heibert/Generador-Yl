@@ -50,8 +50,6 @@ try:
         input("Presiona enter para continuar.")
 
     # Check if the folders exists and create them if they don't
-    os.makedirs(FILES_PATH + "temp", exist_ok=True)
-
     os.makedirs(FILES_PATH + "pdf", exist_ok=True)
 
     if not os.path.exists(FILES_PATH + "Plantillas"):
@@ -184,9 +182,13 @@ try:
         print("Leyendo 'BASE BOT CORRESPONDENCIA.xlsx'...")
         data = get_data_from_excel(FILES_PATH + "BASE BOT CORRESPONDENCIA.xlsx")
         print("Creando PDFs...")
+        errors = []
         for i in range(len(data["CEDULA"])):
             original_docx_path = select_template(str(data["EDAD DE LIQUIDACION"][i]))
-            output_pdf_path = FILES_PATH + f"/pdf/{data['CEDULA'][i]}.pdf"
+            os.makedirs(FILES_PATH + "pdf/" + str(data["DIRECTORA"][i]), exist_ok=True)
+            output_pdf_path = (
+                FILES_PATH + f"/pdf/{str(data['DIRECTORA'][i])}/{data['CEDULA'][i]}.pdf"
+            )
             # Dictionary with placeholders and their corresponding values
             replacements = {
                 "XDATE_TODAYX": TODAY,
@@ -207,9 +209,23 @@ try:
             img_path = FILES_PATH + "images/logo.png"
             modified_docx_path = add_image_as_header(modified_docx_path, img_path)
 
-            # Convert the modified .docx to PDF
-            convert(modified_docx_path, output_pdf_path)
-            print("PDF created successfully at:", output_pdf_path)
+            try:
+                # Convert the modified .docx to PDF
+                convert(modified_docx_path, output_pdf_path)
+                print("PDF created successfully at:", output_pdf_path)
+            except Exception as e:
+                print(f"Error creating PDF for {data['CEDULA'][i]}: {str(e)}")
+                print("Volviendo a intentar...")
+                try:
+                    convert(modified_docx_path, output_pdf_path)
+                    print("PDF created successfully at:", output_pdf_path)
+                except Exception as e:
+                    print(f"Error creating PDF for {data['CEDULA'][i]}: {str(e)}")
+                    errors.append(data["CEDULA"][i])
+        if errors:
+            print("Hubo un error al crear los siguientes PDFs")
+            for error in errors:
+                print(error)
         input("Presiona enter para salir.")
 
 except Exception as e:
@@ -220,14 +236,3 @@ except Exception as e:
 
 finally:
     os.system("taskkill /f /im WINWORD.EXE")
-    try:
-        # Delete the temporary folder
-        temp_path = os.path.join(FILES_PATH, "temp")
-        if os.path.exists(temp_path):
-            for file in os.listdir(temp_path):
-                file_path = os.path.join(temp_path, file)
-                os.remove(file_path)
-            os.rmdir(temp_path)
-    except Exception as e:
-        os.system("taskkill /f /im WINWORD.EXE")
-        os.rmdir(temp_path)

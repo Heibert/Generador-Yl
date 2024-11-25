@@ -128,20 +128,6 @@ try:
             input("Presiona enter para salir.")
             sys.exit()
 
-    # Function to load and replace placeholders in the .docx
-    # def load_and_replace_docx(docx_path, replacements):
-    #     doc = Document(docx_path)
-    #     # Replace placeholders in the body of the document
-    #     for paragraph in doc.paragraphs:
-    #         for placeholder, new_value in replacements.items():
-    #             if placeholder in paragraph.text:
-    #                 # Replace placeholder text while keeping formatting
-    #                 paragraph.text = paragraph.text.replace(placeholder, new_value)
-
-    #     temp_docx_path = FILES_PATH + "words/modified.docx"
-    #     doc.save(temp_docx_path)
-    #     return temp_docx_path
-
     def load_and_replace_docx(docx_path, replacements):
         doc = Document(docx_path)
         for paragraph in doc.paragraphs:
@@ -208,7 +194,13 @@ try:
             # Add an image to the top right of the document
             img_path = FILES_PATH + "images/logo.png"
             modified_docx_path = add_image_as_header(modified_docx_path, img_path)
-
+            j = 1
+            while os.path.exists(output_pdf_path):
+                j += 1
+                output_pdf_path = (
+                    FILES_PATH
+                    + f"/pdf/{str(data['DIRECTORA'][i])}/{data['CEDULA'][i]}_{j}.pdf"
+                )
             try:
                 # Convert the modified .docx to PDF
                 convert(modified_docx_path, output_pdf_path)
